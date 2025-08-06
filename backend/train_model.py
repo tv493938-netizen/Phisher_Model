@@ -8,45 +8,50 @@ import xgboost as xgb
 import lightgbm as lgb
 import catboost as cb
 import pickle
-from src.feature_engineering import extract_features
+import os
 
-# Load CSV file with columns: 'url', 'label'
+# ✅ Load your dataset
 df = pd.read_csv("data/phishing_data.csv")
 
-# Extract 32 lexical features
-X = df['url'].apply(extract_features).apply(pd.Series)
+# ✅ Rename the target column
+df.rename(columns={'CLASS_LABEL': 'label'}, inplace=True)
+
+# ✅ Drop ID column and extract features + labels
+X = df.drop(columns=['id', 'label'])
 y = df['label']
 top_features = X.columns.tolist()
 
-# Train-test split
+# ✅ Split data into train/test
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Scale features
+# ✅ Scale the features
 scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
-# Define base learners
+# ✅ Define base models
 base_models = [
     ('xgb', xgb.XGBClassifier(use_label_encoder=False, eval_metric='logloss', verbosity=0)),
     ('lgb', lgb.LGBMClassifier()),
     ('cb', cb.CatBoostClassifier(verbose=0))
 ]
 
-# Meta learner
+# ✅ Meta learner
 meta_model = LogisticRegression(max_iter=10000)
 
-# Stacked model
+# ✅ Create and train stacking model
 stacked = StackingClassifier(
     estimators=base_models,
     final_estimator=meta_model,
     passthrough=True
 )
 
-# Train model
 stacked.fit(X_train_scaled, y_train)
 
-# Save artifacts
+# ✅ Create output folder if not exists
+os.makedirs("model", exist_ok=True)
+
+# ✅ Save artifacts
 with open("model/stacked_model.pkl", "wb") as f:
     pickle.dump(stacked, f)
 
