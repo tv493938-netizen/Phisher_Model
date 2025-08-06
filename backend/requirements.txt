@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+requests
+pydantic
+tldextract
+scikit-learn
+xgboost
+lightgbm
+catboost
+numpy
